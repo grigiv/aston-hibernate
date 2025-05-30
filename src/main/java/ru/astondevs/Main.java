@@ -1,8 +1,10 @@
-package ru.astonddevs;
+package ru.astondevs;
 
-import ru.astonddevs.dao.UserDao;
-import ru.astonddevs.dao.UserDaoImpl;
-import ru.astonddevs.dto.UserDTO;
+import ru.astondevs.dao.UserDao;
+import ru.astondevs.dao.UserDaoImpl;
+import ru.astondevs.dto.UserDTO;
+import ru.astondevs.service.UserService;
+import ru.astondevs.util.HibernateUtil;
 
 import java.util.List;
 import java.util.Scanner;
@@ -10,7 +12,8 @@ import java.util.UUID;
 
 public class Main {
     public static void main(String[] args) {
-        UserDao userDao = new UserDaoImpl();
+        UserDao userDao = new UserDaoImpl(HibernateUtil.getSessionFactory());
+        UserService userService = new UserService(userDao);
         Scanner scanner = new Scanner(System.in);
         while (true) {
             System.out.println("""
@@ -30,40 +33,39 @@ public class Main {
                     String email = scanner.nextLine();
                     System.out.print("Age: ");
                     int age = Integer.parseInt(scanner.nextLine());
-                    UserDTO userDTO = new UserDTO(name, email, age);
-                    userDao.save(userDTO);
+                    userService.saveUser(name, email, age);
                     System.out.println("User created.");
                 }
                 case 2 -> {
-                    List<UserDTO> users = userDao.getAll();
+                    List<UserDTO> users = userService.getAllUsers();
                     users.forEach(System.out::println);
                 }
                 case 3 -> {
                     System.out.print("Enter ID: ");
                     UUID id = UUID.fromString(scanner.nextLine());
-                    System.out.println(userDao.getById(id));
+                    System.out.println(userService.getUserById(id));
                 }
                 case 4 -> {
                     System.out.print("Enter ID to update: ");
                     UUID id = UUID.fromString(scanner.nextLine());
-                    UserDTO updatedUserDTO = userDao.getById(id);
-                    if (updatedUserDTO == null) {
+                    UserDTO currentUserDTO = userService.getUserById(id);
+                    if (currentUserDTO == null) {
                         System.out.println("User not found.");
                         break;
                     }
                     System.out.print("New name: ");
-                    updatedUserDTO.setName(scanner.nextLine());
+                    String newName = scanner.nextLine();
                     System.out.print("New email: ");
-                    updatedUserDTO.setEmail(scanner.nextLine());
+                    String newEmail = scanner.nextLine();
                     System.out.print("New age: ");
-                    updatedUserDTO.setAge(Integer.parseInt(scanner.nextLine()));
-                    userDao.update(id, updatedUserDTO);
+                    int newAge = Integer.parseInt(scanner.nextLine());
+                    userService.updateUser(currentUserDTO.getId(), newName, newEmail, newAge);
                     System.out.println("User updated.");
                 }
                 case 5 -> {
                     System.out.print("Enter ID to delete: ");
                     UUID id = UUID.fromString(scanner.nextLine());
-                    userDao.delete(id);
+                    userService.deleteUser(id);
                     System.out.println("User deleted.");
                 }
                 case 0 -> {
