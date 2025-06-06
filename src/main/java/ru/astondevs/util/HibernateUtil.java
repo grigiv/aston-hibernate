@@ -1,4 +1,4 @@
-package ru.astonddevs.util;
+package ru.astondevs.util;
 
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
