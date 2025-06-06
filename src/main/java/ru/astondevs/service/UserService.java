@@ -1,52 +1,55 @@
 package ru.astondevs.service;
 
-import ru.astondevs.dao.UserDao;
+import org.springframework.stereotype.Service;
+import ru.astondevs.controller.requests.UserRequestDTO;
 import ru.astondevs.dto.UserDTO;
 import ru.astondevs.model.UserModel;
+import ru.astondevs.repository.UserRepository;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Service
 public class UserService {
 
-    private final UserDao userDao;
+    private final UserRepository userRepository;
 
-    public UserService(UserDao userDao) {
-        this.userDao = userDao;
-    }
-
-    public void saveUser(String name, String email, Integer age) {
-        UserDTO userDTO = new UserDTO(UUID.randomUUID(), name, email, age);
-        UserModel userModel = toModel(userDTO);
-        userDao.save(userModel);
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
     public List<UserDTO> getAllUsers() {
-        return userDao.getAll().stream()
+        return userRepository.findAll().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
-    public UserDTO getUserById(UUID id) {
-        UserModel userModel = userDao.getById(id);
-        if(userModel == null) {
-            return null;
-        }
-        return toDTO(userModel);
+    public Optional<UserDTO> getUserById(UUID id) {
+        return userRepository.findById(id).map(this::toDTO);
     }
 
-    public void updateUser(UUID currentUserId, String newName, String newEmail, int newAge) {
-        UserModel userModel = userDao.getById(currentUserId);
-        userModel.setName(newName);
-        userModel.setEmail(newEmail);
-        userModel.setAge(newAge);
-        userDao.update(userModel);
+    public void saveUser(UserRequestDTO userRequestDTO) {
+        UserDTO userDTO = new UserDTO(UUID.randomUUID(),
+                userRequestDTO.getName(),
+                userRequestDTO.getEmail(),
+                userRequestDTO.getAge());
+        UserModel userModel = toModel(userDTO);
+        userRepository.save(userModel);
+    }
+
+    public void updateUser(UUID currentUserId, UserRequestDTO userRequestDTO) {
+        UserModel userModel = userRepository.findById(currentUserId).orElseThrow();
+        userModel.setName(userRequestDTO.getName());
+        userModel.setEmail(userRequestDTO.getEmail());
+        userModel.setAge(userRequestDTO.getAge());
+        userRepository.save(userModel);
     }
 
     public void deleteUser(UUID id) {
-        userDao.delete(id);
+        userRepository.deleteById(id);
     }
 
     private UserModel toModel(UserDTO userDTO) {

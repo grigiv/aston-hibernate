@@ -6,12 +6,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ru.astondevs.dao.UserDao;
+import ru.astondevs.controller.requests.UserRequestDTO;
 import ru.astondevs.dto.UserDTO;
 import ru.astondevs.model.UserModel;
+import ru.astondevs.repository.UserRepository;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -21,20 +23,10 @@ import static org.mockito.Mockito.*;
 class UserServiceTest {
 
     @Mock
-    UserDao userDao;
+    UserRepository userRepository;
 
     @InjectMocks
     UserService userService;
-
-    @Test
-    void UserService_saveUser_ShouldSave() {
-        //Arrange
-        //Act
-        userService.saveUser("Test", "test@test.ru", 22);
-
-        //Assert
-        verify(userDao, times(1)).save(any(UserModel.class));
-    }
 
     @Test
     void UserService_getAllUsers_ShouldReturnUserList() {
@@ -47,12 +39,12 @@ class UserServiceTest {
                 .createdAt(Instant.now())
                 .build();
         UserDTO userDTO = UserDTO.builder()
-                .id(UUID.randomUUID())
+                .id(userModel.getId())
                 .name("Тест")
                 .email("email@email.com")
                 .age(22)
                 .build();
-        when(userDao.getAll()).thenReturn(List.of(userModel));
+        when(userRepository.findAll()).thenReturn(List.of(userModel));
 
         //Act
         List<UserDTO> result = userService.getAllUsers();
@@ -64,7 +56,7 @@ class UserServiceTest {
         assertEquals(userDTO.getEmail(), result.getFirst().getEmail());
         assertEquals(userDTO.getAge(), result.getFirst().getAge());
         // Проверяем, что метод DAO был вызван 1 раз
-        verify(userDao, times(1)).getAll();
+        verify(userRepository, times(1)).findAll();
     }
 
     @Test
@@ -83,29 +75,41 @@ class UserServiceTest {
                 .email("email@email.com")
                 .age(22)
                 .build();
-        when(userDao.getById(userModel.getId())).thenReturn(userModel);
+        when(userRepository.findById(userModel.getId())).thenReturn(Optional.of(userModel));
 
         //Act
-        UserDTO result = userService.getUserById(userModel.getId());
+        Optional<UserDTO> result = userService.getUserById(userModel.getId());
 
         //Assert
         assertNotNull(result);
-        assertEquals(userDTO.getName(), result.getName());
-        assertEquals(userDTO.getEmail(), result.getEmail());
-        assertEquals(userDTO.getAge(), result.getAge());
-        verify(userDao, times(1)).getById(userModel.getId());
+        assertEquals(userDTO.getName(), result.get().getName());
+        assertEquals(userDTO.getEmail(), result.get().getEmail());
+        assertEquals(userDTO.getAge(), result.get().getAge());
+        verify(userRepository, times(1)).findById(userModel.getId());
     }
 
     @Test
-    void UserService_getUserById_ShouldReturnNull_WhenUserNotFound() {
+    void UserService_getUserById_ShouldReturnNotFound_WhenUserNotFound() {
         //Arrange
         UUID userId = UUID.randomUUID();
-        when(userDao.getById(userId)).thenReturn(null);
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        //Act & Assert
+        assertEquals(userRepository.findById(userId), Optional.empty());
+        verify(userRepository, times(1)).findById(userId);
+    }
+
+    @Test
+    void UserService_saveUser_ShouldSave() {
+        //Arrange
         //Act
-        UserDTO result = userService.getUserById(userId);
+        UserRequestDTO userRequestDTO = new UserRequestDTO();
+        userRequestDTO.setName("Test");
+        userRequestDTO.setEmail("test@test.com");
+        userRequestDTO.setAge(22);
+        userService.saveUser(userRequestDTO);
+
         //Assert
-        assertNull(result);
-        verify(userDao, times(1)).getById(userId);
+        verify(userRepository, times(1)).save(any(UserModel.class));
     }
 
     @Test
@@ -119,23 +123,24 @@ class UserServiceTest {
         existingUser.setAge(30);
         existingUser.setCreatedAt(Instant.now());
 
-        String newName = "New Name";
-        String newEmail = "new@example.com";
-        int newAge = 25;
+        UserRequestDTO userRequestDTO = new UserRequestDTO();
+        userRequestDTO.setName("New Name");
+        userRequestDTO.setEmail("new@example.com");
+        userRequestDTO.setAge(25);
 
-        when(userDao.getById(userId)).thenReturn(existingUser);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
 
         //Act
-        userService.updateUser(userId, newName, newEmail, newAge);
+        userService.updateUser(userId, userRequestDTO);
 
         //Assert
-        verify(userDao, times(1)).getById(userId);
+        verify(userRepository, times(1)).findById(userId);
         ArgumentCaptor<UserModel> captor = ArgumentCaptor.forClass(UserModel.class);
-        verify(userDao).update(captor.capture());
+        verify(userRepository).save(captor.capture());
         UserModel updatedUser = captor.getValue();
-        assertEquals(newName, updatedUser.getName());
-        assertEquals(newEmail, updatedUser.getEmail());
-        assertEquals(newAge, updatedUser.getAge());
+        assertEquals(userRequestDTO.getName(), updatedUser.getName());
+        assertEquals(userRequestDTO.getEmail(), updatedUser.getEmail());
+        assertEquals(userRequestDTO.getAge(), updatedUser.getAge());
         assertEquals(userId, updatedUser.getId());
     }
 
@@ -148,6 +153,6 @@ class UserServiceTest {
         userService.deleteUser(userId);
 
         //Assert
-        verify(userDao, times(1)).delete(userId);
+        verify(userRepository, times(1)).deleteById(userId);
     }
 }

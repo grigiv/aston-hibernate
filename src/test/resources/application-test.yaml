@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: aston-hibernate
+
+  datasource:
+    url: jdbc:tc:postgresql:17.4:///taskmanagerdb
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: create
+    show-sql: true
