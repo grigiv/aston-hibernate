@@ -8,6 +8,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.astondevs.controller.requests.UserRequestDTO;
 import ru.astondevs.dto.UserDTO;
+import ru.astondevs.event.UserEmailEvent;
+import ru.astondevs.event.UserProducer;
 import ru.astondevs.model.UserModel;
 import ru.astondevs.repository.UserRepository;
 
@@ -24,6 +26,9 @@ class UserServiceTest {
 
     @Mock
     UserRepository userRepository;
+
+    @Mock
+    UserProducer userProducer;
 
     @InjectMocks
     UserService userService;
@@ -99,17 +104,19 @@ class UserServiceTest {
     }
 
     @Test
-    void UserService_saveUser_ShouldSave() {
+    void UserService_saveUser_ShouldSaveAndSendEvent() {
         //Arrange
-        //Act
         UserRequestDTO userRequestDTO = new UserRequestDTO();
         userRequestDTO.setName("Test");
         userRequestDTO.setEmail("test@test.com");
         userRequestDTO.setAge(22);
+
+        //Act
         userService.saveUser(userRequestDTO);
 
         //Assert
         verify(userRepository, times(1)).save(any(UserModel.class));
+        verify(userProducer, times(1)).send(any(UserEmailEvent.class));
     }
 
     @Test
@@ -145,14 +152,23 @@ class UserServiceTest {
     }
 
     @Test
-    void UserService_deleteUser_ShouldDeleteUser() {
+    void UserService_deleteUser_ShouldDeleteUserAndSendEvent() {
         //Assert
+        //Arrange
         UUID userId = UUID.randomUUID();
+        UserModel existingUser = new UserModel();
+        existingUser.setId(userId);
+        existingUser.setName("Old Name");
+        existingUser.setEmail("old@example.com");
+        existingUser.setAge(30);
+        existingUser.setCreatedAt(Instant.now());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
 
         //Act
         userService.deleteUser(userId);
 
         //Assert
         verify(userRepository, times(1)).deleteById(userId);
+        verify(userProducer, times(1)).send(any(UserEmailEvent.class));
     }
 }
