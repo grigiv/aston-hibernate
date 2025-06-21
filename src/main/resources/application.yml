@@ -43,3 +43,6 @@ logging:
     org.hibernate: error          # Hibernate (общий уровень)
     org.hibernate.SQL: error      # SQL-запросы Hibernate
     org.hibernate.type.descriptor.sql.BasicBinder: trace  # Параметры запросов
+
+springdoc:
+  show-actuator: true
