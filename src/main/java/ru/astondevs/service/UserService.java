@@ -61,12 +61,13 @@ public class UserService {
         userProducer.send(userEmailEvent);
     }
 
-    public void updateUser(UUID currentUserId, UserRequestDTO userRequestDTO) {
+    public UserDTO updateUser(UUID currentUserId, UserRequestDTO userRequestDTO) {
         UserModel userModel = userRepository.findById(currentUserId).orElseThrow();
         userModel.setName(userRequestDTO.getName());
         userModel.setEmail(userRequestDTO.getEmail());
         userModel.setAge(userRequestDTO.getAge());
         userRepository.save(userModel);
+        return userRepository.findById(userModel.getId()).map(this::toDTO).orElseThrow();
     }
 
     public void deleteUser(UUID id) {
