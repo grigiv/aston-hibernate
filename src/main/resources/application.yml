@@ -1,3 +1,12 @@
+userservice:
+  mail:
+    created:
+      subject: "Аккаунт создан"
+      message: "Здравствуйте! Ваш аккаунт на сайте ваш сайт был успешно создан."
+    deleted:
+      subject: "Аккаунт удален"
+      message: "Здравствуйте! Ваш аккаунт был удалён."
+
 spring:
   application:
     name: aston-hibernate
@@ -13,6 +22,18 @@ spring:
     hibernate:
       ddl-auto: create
 
+  kafka:
+    bootstrap-servers: localhost:29092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    properties:
+      spring.json.add.type.headers: false
+
+kafka:
+  topic:
+    notification: aston-notification
+
 logging:
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
@@ -22,3 +43,6 @@ logging:
     org.hibernate: error          # Hibernate (общий уровень)
     org.hibernate.SQL: error      # SQL-запросы Hibernate
     org.hibernate.type.descriptor.sql.BasicBinder: trace  # Параметры запросов
+
+springdoc:
+  show-actuator: true
